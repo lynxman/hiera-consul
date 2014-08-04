@@ -1,4 +1,4 @@
-[consul](http://www.consul.io) is an orchestration mechanism with fault-tolerance based on the gossip protocol and a key/value store that is eventually consistent. Hiera-consul will allow hiera to write to the k/v store for metadata centralisation and harmonisation.
+[consul](http://www.consul.io) is an orchestration mechanism with fault-tolerance based on the gossip protocol and a key/value store that is strongly consistent. Hiera-consul will allow hiera to write to the k/v store for metadata centralisation and harmonisation.
 
 ## Configuration
 
