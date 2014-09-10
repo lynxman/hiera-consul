@@ -1,3 +1,5 @@
+[![Puppet Forge](http://img.shields.io/puppetforge/v/lynxman/hiera_consul.svg)](https://forge.puppetlabs.com/lynxman/hiera_consul)
+
 [consul](http://www.consul.io) is an orchestration mechanism with fault-tolerance based on the gossip protocol and a key/value store that is strongly consistent. Hiera-consul will allow hiera to write to the k/v store for metadata centralisation and harmonisation.
 
 ## Configuration
