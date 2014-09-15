@@ -44,8 +44,14 @@ class Hiera
 
         paths.each do |path|
           Hiera.debug("[hiera-consul]: Lookup #{path}/#{key} on #{@config[:host]}:#{@config[:port]}")
+          # Check that we are not looking somewhere that will make hiera crash subsequent lookups
           if "#{path}/#{key}".match("//")
             Hiera.debug("[hiera-consul]: The specified path #{path}/#{key} is malformed, skipping")
+            next
+          end
+          # We only support querying the catalog or the kv store
+          if path !~ /^\/v\d\/(catalog|kv)\//
+            Hiera.debug("[hiera-consul]: We only support queries to catalog and kv and you asked #{path}, skipping")
             next
           end
           httpreq = Net::HTTP::Get.new("#{path}/#{key}")
@@ -74,8 +80,11 @@ class Hiera
         answer = nil
         # Consul always returns an array
         res_array = JSON.parse(res)
-        if res_array.is_a?(Array)
+        # See if we are a k/v return or a catalog return
+        if res_array.include? 'Value'
           answer = Base64.decode64(res_array.first['Value'])
+        else
+          answer = res_array
         end
         answer
       end
