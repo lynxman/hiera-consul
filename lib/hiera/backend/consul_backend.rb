@@ -78,15 +78,23 @@ class Hiera
       def parse_result(res)
         require 'base64'
         answer = nil
+        if res == "null"
+          Hiera.debug("[hiera-consul]: Jumped as consul null is not valid")
+          return answer
+        end
         # Consul always returns an array
         res_array = JSON.parse(res)
         # See if we are a k/v return or a catalog return
-        if res_array.include? 'Value'
-          answer = Base64.decode64(res_array.first['Value'])
+        if res_array.length > 0
+          if res_array.include? 'Value'
+            answer = Base64.decode64(res_array.first['Value'])
+          else
+            answer = res_array
+          end
         else
-          answer = res_array
+          Hiera.debug("[hiera-consul]: Jumped as array empty")
         end
-        answer
+        return answer
       end
 
     end
