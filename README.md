@@ -13,8 +13,8 @@ The following hiera.yaml should get you started.
       :host: 127.0.0.1
       :port: 8500
       :paths:
-        - /configuration/%{fqdn}
-        - /configuration/common
+        - /v1/kv/configuration/%{fqdn}
+        - /v1/kv/configuration/common
 
 ## Extra parameters
 
@@ -30,6 +30,22 @@ As this module uses http to talk with Consul API the following parameters are al
       :ssl_ca_cert: /path/to/ca/cert
       :failure: graceful
       :ignore_404: true
+
+## Query the catalog
+
+You can also query the Consul catalog for values by adding catalog resources in your paths, the values will be returned as an array so you will need to parse accordingly.
+
+    :backends:
+      - consul
+
+    :consul:
+      :host: 127.0.0.1
+      :port: 8500
+      :paths:
+        - /v1/kv/configuration/%{fqdn}
+        - /v1/kv/configuration/common
+        - /v1/catalog/service
+        - /v1/catalog/node
 
 ## Thanks
 
