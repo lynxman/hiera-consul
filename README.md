@@ -49,7 +49,7 @@ You can also query the Consul catalog for values by adding catalog resources in 
 
 ## Helper function
 
-# consul_info
+### consul_info
 
 This function will allow you to read information out of a consul Array, as an example here we recover node IPs based on a service:
 
