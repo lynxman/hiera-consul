@@ -47,6 +47,17 @@ You can also query the Consul catalog for values by adding catalog resources in 
         - /v1/catalog/service
         - /v1/catalog/node
 
+## Helper function
+
+# consul_info
+
+This function will allow you to read information out of a consul Array, as an example here we recover node IPs based on a service:
+
+    $consul_service_array = hiera('rabbitmq',[])
+    $mq_cluster_nodes = consul_info($consul_service_array, 'Address')
+
+In this example $mq_cluster_nodes will have a hash with all the IP addresses related to that service
+
 ## Thanks
 
 Heavily based on [etcd-hiera](https://github.com/garethr/hiera-etcd) written by @garethr which was inspired by [hiera-http](https://github.com/crayfishx/hiera-http) from @crayfishx.
