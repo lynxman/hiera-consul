@@ -3,7 +3,7 @@ class Hiera
   module Backend
     class Consul_backend
 
-      def initialize
+      def initialize()
         require 'net/http'
         require 'net/https'
         require 'json'
@@ -11,6 +11,7 @@ class Hiera
         @consul = Net::HTTP.new(@config[:host], @config[:port])
         @consul.read_timeout = @config[:http_read_timeout] || 10
         @consul.open_timeout = @config[:http_connect_timeout] || 10
+        @cache = {}
 
         if @config[:use_ssl]
           @consul.use_ssl = true
@@ -32,17 +33,89 @@ class Hiera
         else
           @consul.use_ssl = false
         end
+
+        def parse_result(res)
+          require 'base64'
+          answer = nil
+          if res == "null"
+            Hiera.debug("[hiera-consul]: Jumped as consul null is not valid")
+            return answer
+          end
+          # Consul always returns an array
+          res_array = JSON.parse(res)
+          # See if we are a k/v return or a catalog return
+          if res_array.length > 0
+            if res_array.include? 'Value'
+              answer = Base64.decode64(res_array.first['Value'])
+            else
+              answer = res_array
+            end
+          else
+            Hiera.debug("[hiera-consul]: Jumped as array empty")
+          end
+          return answer
+        end
+
+        def wrapquery(path)
+          httpreq = Net::HTTP::Get.new("#{path}")
+          begin
+            result = @consul.request(httpreq)
+          rescue Exception => e
+            Hiera.debug("[hiera-consul]: bad request key")
+            raise Exception, e.message unless @config[:failure] == 'graceful'
+            return nil
+          end
+          unless result.kind_of?(Net::HTTPSuccess)
+            Hiera.debug("[hiera-consul]: bad http response from #{@config[:host]}:#{@config[:port]}#{path}")
+            Hiera.debug("[hiera-consul]: HTTP response code was #{result.code}")
+            return nil
+          end
+          Hiera.debug("[hiera-consul]: Answer was #{result.body}")
+          return self.parse_result(result.body)
+        end
+
+        services = wrapquery('/v1/catalog/services')
+        services.each do |key, value|
+          service = wrapquery("/v1/catalog/service/#{key}")
+          service.each do |node_hash|
+            node = node_hash['Node']
+            node_hash.each do |property, value|
+              # Value of a particular node
+              if not property == 'ServiceID'
+                if not property == 'Node'
+                  @cache["#{key}_#{property}_#{node}"] = value
+                end
+                if not @cache.has_key?("#{key}_#{property}")
+                  # Value of the first registered node
+                  @cache["#{key}_#{property}"] = value
+                  # Values of all nodes
+                  @cache["#{key}_#{property}_array"] = [value]
+                else
+                  @cache["#{key}_#{property}_array"].push(value)
+                end
+              end
+            end
+          end
+        end
+
+        Hiera.debug("[hiera-consul]: Cache #{@cache}")
+
       end
 
       def lookup(key, scope, order_override, resolution_type)
 
         answer = nil
 
-        # Extract multiple etcd paths from the configuration file
         paths = @config[:paths].map { |p| Backend.parse_string(p, scope, { 'key' => key }) }
         paths.insert(0, order_override) if order_override
 
         paths.each do |path|
+          if path == 'services'
+            if @cache.has_key?(key)
+              answer = @cache[key]
+              return answer
+            end
+          end
           Hiera.debug("[hiera-consul]: Lookup #{path}/#{key} on #{@config[:host]}:#{@config[:port]}")
           # Check that we are not looking somewhere that will make hiera crash subsequent lookups
           if "#{path}/#{key}".match("//")
