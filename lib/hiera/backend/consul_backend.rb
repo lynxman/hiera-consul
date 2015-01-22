@@ -86,7 +86,7 @@ class Hiera
         res_array = JSON.parse(res)
         # See if we are a k/v return or a catalog return
         if res_array.length > 0
-          if res_array.include? 'Value'
+          if res_array.first.include? 'Value'
             answer = Base64.decode64(res_array.first['Value'])
           else
             answer = res_array
