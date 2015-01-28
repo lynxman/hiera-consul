@@ -1,5 +1,5 @@
 name        'lynxman/hiera_consul'
-version     '0.0.2'
+version     '0.0.3'
 source      'git://github.com/lynxman/hiera-consul.git'
 author      'Marc Cluet'
 summary     'Module for using consul as a hiera backend'
