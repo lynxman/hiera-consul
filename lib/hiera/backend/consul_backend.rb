@@ -94,20 +94,21 @@ class Hiera
 
       def wrapquery(path)
           httpreq = Net::HTTP::Get.new("#{path}")
+          answer = nil
           begin
             result = @consul.request(httpreq)
           rescue Exception => e
-            Hiera.debug("[hiera-consul]: bad request key")
+            Hiera.debug("[hiera-consul]: Could not connect to Consul")
             raise Exception, e.message unless @config[:failure] == 'graceful'
-            return nil
+            return answer
           end
           unless result.kind_of?(Net::HTTPSuccess)
-            Hiera.debug("[hiera-consul]: bad http response from #{@config[:host]}:#{@config[:port]}#{path}")
             Hiera.debug("[hiera-consul]: HTTP response code was #{result.code}")
-            return nil
+            return answer
           end
           Hiera.debug("[hiera-consul]: Answer was #{result.body}")
-          return parse_result(result.body)
+          answer = parse_result(result.body)
+          return answer
       end
 
       def build_cache!
