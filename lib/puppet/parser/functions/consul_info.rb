@@ -24,7 +24,7 @@ Parse the incoming consul info and return a value
     if data.is_a?(Hash)
       myendstring = ""
       field_iterator.each do |myfield|
-        myendstring += "#{data[myfield]}#{separator}"
+        myendstring << "#{data[myfield]}#{separator}"
       end
       return myendstring.gsub(/#{Regexp.escape(separator)}$/, '')
     elsif data.is_a?(Array)
@@ -32,11 +32,11 @@ Parse the incoming consul info and return a value
       data.each do |mydata|
         myendstring = ""
         field_iterator.each do |myfield|
-          myendstring += "#{mydata[myfield]}#{separator}"
+          myendstring << "#{mydata[myfield]}#{separator}"
         end
-        myreturn << myendstring
+        myreturn << myendstring.gsub(/#{Regexp.escape(separator)}$/, '')
       end
-      return myreturn.gsub(/#{Regexp.escape(separator)}$/, '')
+      return myreturn
     end
 
   end
