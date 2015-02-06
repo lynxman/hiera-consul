@@ -10,7 +10,6 @@
   "issues_url": "https://github.com/lynxman/hiera-consul/issues",
   "tags": ["consul", "hiera"],
   "operatingsystem_support": [
-  "operatingsystem_support": [
     {
       "operatingsystem": "RedHat",
       "operatingsystemrelease": [
