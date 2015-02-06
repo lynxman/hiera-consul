@@ -58,7 +58,15 @@ This function will allow you to read information out of a consul Array, as an ex
 
 In this example $mq_cluster_nodes will have a hash with all the IP addresses related to that service
 
+You can also feed it more than one field and a separator and it will generate a composed string
+
+    $consul_service_array = hiera('rabbitmq',[])
+    $mq_cluster_nodes = consul_info($consul_service_array, [ 'Address', 'Port' ], ':')
+
+The result will look like this: AddressA:PortA, AddressB:PortB
+
 ## Thanks
 
 Heavily based on [etcd-hiera](https://github.com/garethr/hiera-etcd) written by @garethr which was inspired by [hiera-http](https://github.com/crayfishx/hiera-http) from @crayfishx.
 Thanks to @mitchellh for writing such wonderful tools and the [API Documentation](http://www.consul.io/docs/agent/http.html)
+Thanks for their contributions to [Wei Tie](https://github.com/TieWei), [Derek Tracy](https://github.com/tracyde) and [Michael Chapman](https://github.com/michaeltchapman)
