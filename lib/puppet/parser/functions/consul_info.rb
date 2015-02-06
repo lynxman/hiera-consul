@@ -6,15 +6,37 @@ Parse the incoming consul info and return a value
 
     data  = args[0]
     field = args[1]
+    if args[2]
+      separator = args[2]
+    else
+      separator = ":"
+    end
+
+    if field.is_a?(Array)
+      field_iterator = field
+    elsif field.is_a?(String)
+      field_iterator = []
+      field_iterator.push(field)
+    elsif field.is_a?(Hash)
+      raise(Puppet::ParseError, 'consul_info() does not accept a hash as your field argument')
+    end
 
     if data.is_a?(Hash)
-      return data[field]
+      myendstring = ""
+      field_iterator.each do |myfield|
+        myendstring += "#{data[myfield]}#{separator}"
+      end
+      return myendstring.gsub(/#{Regexp.escape(separator)}$/, '')
     elsif data.is_a?(Array)
       myreturn = []
-      data.each { |myhash|
-        myreturn << myhash[field]
-      }
-      return myreturn
+      data.each do |mydata|
+        myendstring = ""
+        field_iterator.each do |myfield|
+          myendstring += "#{mydata[myfield]}#{separator}"
+        end
+        myreturn << myendstring
+      end
+      return myreturn.gsub(/#{Regexp.escape(separator)}$/, '')
     end
 
   end
