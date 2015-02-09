@@ -63,7 +63,11 @@ You can also feed it more than one field and a separator and it will generate a 
     $consul_service_array = hiera('rabbitmq',[])
     $mq_cluster_nodes = consul_info($consul_service_array, [ 'Address', 'Port' ], ':')
 
-The result will look like this: AddressA:PortA, AddressB:PortB
+The result will return an array like this: [ AddressA:PortA, AddressB:PortB ]
+
+If you want to flatten the output array you can always use [join](https://forge.puppetlabs.com/puppetlabs/stdlib) from the Puppet stdlib.
+
+    $myresult = join($mq_cluster_nodes, ",")
 
 ## Thanks
 
