@@ -27,8 +27,8 @@ class Hiera
             store.add_cert(OpenSSL::X509::Certificate.new(File.read(@config[:ssl_ca_cert])))
             @consul.cert_store = store
 
-            @consul.key = OpenSSL::PKey::RSA.new(File.read(@config[:ssl_cert]))
-            @consul.cert = OpenSSL::X509::Certificate.new(File.read(@config[:ssl_key]))
+            @consul.key = OpenSSL::PKey::RSA.new(File.read(@config[:ssl_key]))
+            @consul.cert = OpenSSL::X509::Certificate.new(File.read(@config[:ssl_cert]))
           end
         else
           @consul.use_ssl = false
