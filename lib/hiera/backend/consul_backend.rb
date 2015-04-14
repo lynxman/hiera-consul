@@ -8,7 +8,12 @@ class Hiera
         require 'net/https'
         require 'json'
         @config = Config[:consul]
-        @consul = Net::HTTP.new(@config[:host], @config[:port])
+        if (@config[:host] && @config[:port])
+          @consul = Net::HTTP.new(@config[:host], @config[:port])
+        else
+          raise "[hiera-consul]: Missing minimum configuration, please check hiera.yaml"
+        end
+
         @consul.read_timeout = @config[:http_read_timeout] || 10
         @consul.open_timeout = @config[:http_connect_timeout] || 10
         @cache = {}
