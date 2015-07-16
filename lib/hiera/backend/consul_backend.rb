@@ -97,8 +97,18 @@ class Hiera
 
       private
 
+      def token(path)
+        # Token is passed only when querying kv store
+        if @config[:token] and path =~ /^\/v\d\/kv\//
+          return "?token=#{@config[:token]}"
+        else
+          return nil
+        end
+      end
+
       def wrapquery(path)
-          httpreq = Net::HTTP::Get.new("#{path}")
+
+          httpreq = Net::HTTP::Get.new("#{path}#{token(path)}")
           answer = nil
           begin
             result = @consul.request(httpreq)
