@@ -30,6 +30,7 @@ As this module uses http to talk with Consul API the following parameters are al
       :ssl_ca_cert: /path/to/ca/cert
       :failure: graceful
       :ignore_404: true
+      :token: acl-uuid-token
 
 ## Query the catalog
 
