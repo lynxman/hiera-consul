@@ -53,6 +53,14 @@ class Hiera
         end
       end
 
+      def ssl_verify!
+        if @config[:ssl_verify]
+          @consul.verify_mode = OpenSSL::SSL::VERIFY_PEER
+        else
+          @consul.verify_mode = OpenSSL::SSL::VERIFY_NONE
+        end
+      end
+
       def ssl_store!
         @store = OpenSSL::X509::Store.new
         @store.add_cert(OpenSSL::X509::Certificate.new(File.read(@config[:ssl_ca_cert])))
@@ -69,15 +77,7 @@ class Hiera
         @consul.cert = OpenSSL::X509::Certificate.new(File.read(@config[:ssl_cert]))
       end
 
-      def ssl_verify!
-        if @config[:ssl_verify]
-          @consul.verify_mode = OpenSSL::SSL::VERIFY_PEER
-        else
-          @consul.verify_mode = OpenSSL::SSL::VERIFY_NONE
-        end
-      end
-
-      def lookup(key, scope, order_override, resolution_type)
+      def lookup(key, scope, order_override, _resolution_type)
         answer = nil
 
         paths = @config[:paths].map { |p| Backend.parse_string(p, scope, 'key' => key) }
@@ -91,16 +91,19 @@ class Hiera
             end
           end
           Hiera.debug("[hiera-consul]: Lookup #{path}/#{key} on #{@config[:host]}:#{@config[:port]}")
+
           # Check that we are not looking somewhere that will make hiera crash subsequent lookups
           if "#{path}/#{key}".match('//')
             Hiera.debug("[hiera-consul]: The specified path #{path}/#{key} is malformed, skipping")
             next
           end
+
           # We only support querying the catalog or the kv store
           if path !~ %r{^/v\d/(catalog|kv)/}
             Hiera.debug("[hiera-consul]: We only support queries to catalog and kv and you asked #{path}, skipping")
             next
           end
+
           answer = wrapquery("#{path}/#{key}")
           next unless answer
           break
