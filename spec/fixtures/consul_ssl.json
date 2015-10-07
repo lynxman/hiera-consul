@@ -1,0 +1,13 @@
+{
+  "bootstrap": true,
+  "data_dir": "/tmp/consul",
+  "server": true,
+  "ca_file": "spec/fixtures/ssl/ca.pem",
+  "cert_file": "spec/fixtures/ssl/example.com.pem",
+  "key_file": "spec/fixtures/ssl/example.com-key.pem",
+  "verify_incoming": true,
+  "verify_outgoing": true,
+  "ports": {
+    "https": 8501
+  }
+}

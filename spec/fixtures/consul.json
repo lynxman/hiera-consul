@@ -1,0 +1,5 @@
+{
+  "bootstrap": true,
+  "data_dir": "/tmp/consul",
+  "server": true
+}

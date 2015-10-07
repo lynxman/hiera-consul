@@ -1,0 +1,14 @@
+:backends:
+  - consul
+
+:consul:
+  :host: 127.0.0.1
+  :port: 8501
+  :paths:
+    - /v1/kv/configuration/%{::fqdn}
+    - /v1/kv/configuration/common
+  :use_ssl: true
+  :ssl_verify: true
+  :ssl_cert: spec/fixtures/ssl/example.com.pem
+  :ssl_key: spec/fixtures/ssl/example.com-key.pem
+  :ssl_ca_cert: spec/fixtures/ssl/ca.pem
