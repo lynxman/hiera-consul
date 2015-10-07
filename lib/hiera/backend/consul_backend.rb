@@ -7,6 +7,8 @@ require 'base64'
 class Hiera
   module Backend
     class Consul_backend
+      @api_version = 'v1'
+
       def initialize
         @config              = Config[:consul]
         @consul              = consul
@@ -161,11 +163,11 @@ class Hiera
       end
 
       def build_cache!
-        services = wrapquery('/v1/catalog/services')
+        services = wrapquery("/#{@api_version}/catalog/services")
         return nil unless services.is_a? Hash
 
         services.each do |key, _value|
-          service = wrapquery("/v1/catalog/service/#{key}")
+          service = wrapquery("/#{@api_version}/catalog/service/#{key}")
           next unless service.is_a? Array
 
           service.each do |node_hash|
@@ -183,6 +185,7 @@ class Hiera
               else
                 # Value of the first registered node
                 @cache["#{key}_#{property}"] = value
+
                 # Values of all nodes
                 @cache["#{key}_#{property}_array"] = [value]
               end
