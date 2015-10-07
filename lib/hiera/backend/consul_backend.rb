@@ -4,6 +4,7 @@ require 'json'
 require 'base64'
 
 # Hiera backend for Consul
+
 class Hiera
   module Backend
     class Consul_backend
@@ -86,28 +87,33 @@ class Hiera
         paths = @config[:paths].map { |p| Backend.parse_string(p, scope, 'key' => key) }
         paths.unshift(order_override) if order_override
 
-        paths.each do |path|
+        filtered_paths = filter_paths(paths, key)
+
+        filtered_paths.each do |path|
           return @cache[key] if path == 'services' && @cache.key?(key)
 
           debug("Lookup #{path}/#{key} on #{@config[:host]}:#{@config[:port]}")
 
-          # Check that we are not looking somewhere that will make hiera crash subsequent lookups
-          if "#{path}/#{key}".match('//')
-            debug("The specified path #{path}/#{key} is malformed, skipping")
-            next
-          end
-
-          # We only support querying the catalog or the kv store
-          if path !~ %r{^/v\d/(catalog|kv)/}
-            debug("We only support queries to catalog and kv and you asked #{path}, skipping")
-            next
-          end
-
           answer = wrapquery("#{path}/#{key}")
-          next unless answer
-          break
+          break if answer
         end
+
         answer
+      end
+
+      def filter_paths(paths, key)
+        paths.each_with_object([]) do |path, acc|
+          if "#{path}/#{key}".match('//')
+            # Check that we are not looking somewhere that will make hiera
+            # crash subsequent lookups
+            debug("The specified path #{path}/#{key} is malformed, skipping")
+          elsif path !~ %r{^/v\d/(catalog|kv)/}
+            # We only support querying the catalog or the kv store
+            debug("We only support queries to catalog and kv and you asked #{path}, skipping")
+          else
+            acc << path
+          end
+        end
       end
 
       def parse_result(res)
@@ -193,12 +199,12 @@ class Hiera
 
         service.each do |node_hash|
           node = node_hash['Node']
-          cache_query(key, node, node_hash)
+          cache_node(key, node, node_hash)
         end
       end
 
       # Store the value of a particular node
-      def cache_query(key, node, node_hash)
+      def cache_node(key, node, node_hash)
         node_hash.each do |property, value|
           next if property == 'ServiceID'
 
