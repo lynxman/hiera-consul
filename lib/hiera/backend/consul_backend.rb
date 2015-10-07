@@ -209,7 +209,7 @@ class Hiera
             end
           end
         end
-        debug("Cache #{@cache}")
+        debug("Cache: #{@cache}")
       end
     end
   end

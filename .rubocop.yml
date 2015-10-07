@@ -6,3 +6,6 @@ Style/Documentation:
   Enabled: false
 Style/ClassAndModuleCamelCase:
   Enabled: false
+
+Metrics/MethodLength:
+  Max: 12
