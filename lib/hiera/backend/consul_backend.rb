@@ -17,36 +17,55 @@ class Hiera
         build_cache!
       end
 
-      def use_ssl!
-        unless @config[:use_ssl]
-          @consul.use_ssl = false
-          return
-        end
-
-        @consul.use_ssl = true
-
-        if @config[:ssl_verify] == false
-          @consul.verify_mode = OpenSSL::SSL::VERIFY_NONE
-        else
-          @consul.verify_mode = OpenSSL::SSL::VERIFY_PEER
-        end
-
-        return unless @config[:ssl_cert]
-        store = OpenSSL::X509::Store.new
-        store.add_cert(OpenSSL::X509::Certificate.new(File.read(@config[:ssl_ca_cert])))
-        @consul.cert_store = store
-
-        Hiera.debug "#{File.expand_path(@config[:ssl_key])}"
-        Hiera.debug "#{File.expand_path(@config[:ssl_cert])}"
-        @consul.key = OpenSSL::PKey::RSA.new(File.read(@config[:ssl_key]))
-        @consul.cert = OpenSSL::X509::Certificate.new(File.read(@config[:ssl_cert]))
-      end
-
       def consul
         if @config[:host] && @config[:port]
           Net::HTTP.new(@config[:host], @config[:port])
         else
           fail '[hiera-consul]: Missing minimum configuration, please check hiera.yaml'
+        end
+      end
+
+      def use_ssl!
+        if @config[:use_ssl]
+          @consul.use_ssl = true
+          config_ssl!
+        else
+          @consul.use_ssl = false
+        end
+      end
+
+      def config_ssl!
+        msg = '[hiera-consul]: use_ssl is enabled but no ssl_cert is set'
+        fail msg unless @config[:ssl_cert]
+
+        ssl_verify!
+        ssl_store!
+        ssl_key!
+        ssl_cert!
+      end
+
+      def ssl_store!
+        return @store if @store
+        @store = OpenSSL::X509::Store.new
+        @store.add_cert(OpenSSL::X509::Certificate.new(File.read(@config[:ssl_ca_cert])))
+        @consul.cert_store = @store
+      end
+
+      def ssl_key!
+        Hiera.debug "[hiera-consul]: ssl_key: #{File.expand_path(@config[:ssl_key])}"
+        @consul.key = OpenSSL::PKey::RSA.new(File.read(@config[:ssl_key]))
+      end
+
+      def ssl_cert!
+        Hiera.debug "[hiera-consul]: ssl_cert: #{File.expand_path(@config[:ssl_cert])}"
+        @consul.cert = OpenSSL::X509::Certificate.new(File.read(@config[:ssl_cert]))
+      end
+
+      def ssl_verify!
+        if @config[:ssl_verify]
+          @consul.verify_mode = OpenSSL::SSL::VERIFY_PEER
+        else
+          @consul.verify_mode = OpenSSL::SSL::VERIFY_NONE
         end
       end
 
