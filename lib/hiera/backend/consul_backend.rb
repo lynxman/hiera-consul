@@ -23,6 +23,28 @@ class Hiera
         build_cache!
       end
 
+      def lookup(key, scope, order_override, _resolution_type)
+        answer = nil
+
+        paths = @config[:paths].map { |p| Backend.parse_string(p, scope, 'key' => key) }
+        paths.unshift(order_override) if order_override
+
+        filtered_paths = filter_paths(paths, key)
+
+        filtered_paths.each do |path|
+          return @cache[key] if path == 'services' && @cache.key?(key)
+
+          debug("Lookup #{path}/#{key} on #{@config[:host]}:#{@config[:port]}")
+
+          answer = wrapquery("#{path}/#{key}")
+          break if answer
+        end
+
+        answer
+      end
+
+      private
+
       def consul
         if @config[:host] && @config[:port]
           Net::HTTP.new(@config[:host], @config[:port])
@@ -80,26 +102,6 @@ class Hiera
         @consul.cert = OpenSSL::X509::Certificate.new(File.read(@config[:ssl_cert]))
       end
 
-      def lookup(key, scope, order_override, _resolution_type)
-        answer = nil
-
-        paths = @config[:paths].map { |p| Backend.parse_string(p, scope, 'key' => key) }
-        paths.unshift(order_override) if order_override
-
-        filtered_paths = filter_paths(paths, key)
-
-        filtered_paths.each do |path|
-          return @cache[key] if path == 'services' && @cache.key?(key)
-
-          debug("Lookup #{path}/#{key} on #{@config[:host]}:#{@config[:port]}")
-
-          answer = wrapquery("#{path}/#{key}")
-          break if answer
-        end
-
-        answer
-      end
-
       def filter_paths(paths, key)
         paths.each_with_object([]) do |path, acc|
           if "#{path}/#{key}".match('//')
@@ -131,8 +133,6 @@ class Hiera
           res_array
         end
       end
-
-      private
 
       def debug(msg)
         Hiera.debug("[hiera-consul]: #{msg}")
