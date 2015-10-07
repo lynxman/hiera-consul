@@ -74,12 +74,12 @@ class Hiera
       end
 
       def ssl_key!
-        Hiera.debug "[hiera-consul]: ssl_key: #{File.expand_path(@config[:ssl_key])}"
+        debug("ssl_key: #{File.expand_path(@config[:ssl_key])}")
         @consul.key = OpenSSL::PKey::RSA.new(File.read(@config[:ssl_key]))
       end
 
       def ssl_cert!
-        Hiera.debug "[hiera-consul]: ssl_cert: #{File.expand_path(@config[:ssl_cert])}"
+        debug("ssl_cert: #{File.expand_path(@config[:ssl_cert])}")
         @consul.cert = OpenSSL::X509::Certificate.new(File.read(@config[:ssl_cert]))
       end
 
@@ -92,17 +92,17 @@ class Hiera
         paths.each do |path|
           return @cache[key] if path == 'services' && @cache.key?(key)
 
-          Hiera.debug("[hiera-consul]: Lookup #{path}/#{key} on #{@config[:host]}:#{@config[:port]}")
+          debug("Lookup #{path}/#{key} on #{@config[:host]}:#{@config[:port]}")
 
           # Check that we are not looking somewhere that will make hiera crash subsequent lookups
           if "#{path}/#{key}".match('//')
-            Hiera.debug("[hiera-consul]: The specified path #{path}/#{key} is malformed, skipping")
+            debug("The specified path #{path}/#{key} is malformed, skipping")
             next
           end
 
           # We only support querying the catalog or the kv store
           if path !~ %r{^/v\d/(catalog|kv)/}
-            Hiera.debug("[hiera-consul]: We only support queries to catalog and kv and you asked #{path}, skipping")
+            debug("We only support queries to catalog and kv and you asked #{path}, skipping")
             next
           end
 
@@ -119,7 +119,7 @@ class Hiera
 
         # See if we are a k/v return or a catalog return
         unless res_array.length > 0
-          Hiera.debug('[hiera-consul]: Jumped as array empty')
+          debug('Jumped as array empty')
           return nil
         end
 
@@ -132,6 +132,10 @@ class Hiera
 
       private
 
+      def debug(msg)
+        Hiera.debug("[hiera-consul]: #{msg}")
+      end
+
       # Token is passed only when querying kv store
       def token(path)
         "?token=#{@config[:token]}" if @config[:token] && path =~ %r{^/v\d/kv/}
@@ -142,37 +146,37 @@ class Hiera
         result  = request(httpreq)
 
         unless result.is_a?(Net::HTTPSuccess)
-          Hiera.debug("[hiera-consul]: HTTP response code was #{result.code}")
+          debug("HTTP response code was #{result.code}")
           return nil
         end
 
         if result.body == 'null'
-          Hiera.debug('[hiera-consul]: Jumped as consul null is not valid')
+          debug('Jumped as consul null is not valid')
           return nil
         end
 
-        Hiera.debug("[hiera-consul]: Answer was #{result.body}")
+        debug("Answer was #{result.body}")
         parse_result(result.body)
       end
 
       def request(httpreq)
         @consul.request(httpreq)
       rescue StandardError => e
-        Hiera.debug('[hiera-consul]: Could not connect to Consul')
+        debug('Could not connect to Consul')
         raise Exception, e.message unless @config[:failure] == 'graceful'
         return nil
       end
 
       def query_services
         path = "/#{self.class.api_version}/catalog/services"
-        Hiera.debug("[hiera-consul]: Querying #{path}")
+        debug("Querying #{path}")
         wrapquery(path)
       end
 
       def query_service(key)
-        wrapquery("/#{self.class.api_version}/catalog/service/#{key}").select do |s|
-          s.is_a? Array
-        end
+        path = "/#{self.class.api_version}/catalog/service/#{key}"
+        debug("Querying #{path}")
+        wrapquery(path)
       end
 
       def build_cache!
@@ -180,7 +184,10 @@ class Hiera
         return nil unless services.is_a? Hash
 
         services.each do |key, _|
-          query_service(key).each do |node_hash|
+          service = query_service(key)
+          next unless service.is_a?(Array)
+
+          service.each do |node_hash|
             node = node_hash['Node']
             node_hash.each do |property, value|
               # Value of a particular node
@@ -202,7 +209,7 @@ class Hiera
             end
           end
         end
-        Hiera.debug("[hiera-consul]: Cache #{@cache}")
+        debug("Cache #{@cache}")
       end
     end
   end
