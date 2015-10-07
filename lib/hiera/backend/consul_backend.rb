@@ -81,7 +81,7 @@ class Hiera
         answer = nil
 
         paths = @config[:paths].map { |p| Backend.parse_string(p, scope, 'key' => key) }
-        paths.insert(0, order_override) if order_override
+        paths.unshift(order_override) if order_override
 
         paths.each do |path|
           return @cache[key] if path == 'services' && @cache.key?(key)
@@ -109,12 +109,15 @@ class Hiera
 
       def parse_result(res)
         answer = nil
+
         if res == 'null'
           Hiera.debug('[hiera-consul]: Jumped as consul null is not valid')
           return answer
         end
+
         # Consul always returns an array
         res_array = JSON.parse(res)
+
         # See if we are a k/v return or a catalog return
         if res_array.length > 0
           if res_array.first.include? 'Value'
@@ -125,44 +128,46 @@ class Hiera
         else
           Hiera.debug('[hiera-consul]: Jumped as array empty')
         end
+
         answer
       end
 
       private
 
+      # Token is passed only when querying kv store
       def token(path)
-        # Token is passed only when querying kv store
-        if @config[:token] && path =~ %r{^/v\d/kv/}
-          return "?token=#{@config[:token]}"
-        else
-          return nil
-        end
+        "?token=#{@config[:token]}" if @config[:token] && path =~ %r{^/v\d/kv/}
       end
 
       def wrapquery(path)
         httpreq = Net::HTTP::Get.new("#{path}#{token(path)}")
-        answer = nil
-        begin
-          result = @consul.request(httpreq)
-        rescue StandardError => e
-          Hiera.debug('[hiera-consul]: Could not connect to Consul')
-          raise Exception, e.message unless @config[:failure] == 'graceful'
-          return answer
-        end
+        result  = request(httpreq)
+
         unless result.is_a?(Net::HTTPSuccess)
           Hiera.debug("[hiera-consul]: HTTP response code was #{result.code}")
-          return answer
+          return nil
         end
+
         Hiera.debug("[hiera-consul]: Answer was #{result.body}")
         parse_result(result.body)
+      end
+
+      def request(httpreq)
+        @consul.request(httpreq)
+      rescue StandardError => e
+        Hiera.debug('[hiera-consul]: Could not connect to Consul')
+        raise Exception, e.message unless @config[:failure] == 'graceful'
+        return nil
       end
 
       def build_cache!
         services = wrapquery('/v1/catalog/services')
         return nil unless services.is_a? Hash
+
         services.each do |key, _value|
           service = wrapquery("/v1/catalog/service/#{key}")
           next unless service.is_a? Array
+
           service.each do |node_hash|
             node = node_hash['Node']
             node_hash.each do |property, value|
