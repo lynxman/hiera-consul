@@ -84,12 +84,8 @@ class Hiera
         paths.insert(0, order_override) if order_override
 
         paths.each do |path|
-          if path == 'services'
-            if @cache.key?(key)
-              answer = @cache[key]
-              return answer
-            end
-          end
+          return @cache[key] if path == 'services' && @cache.key?(key)
+
           Hiera.debug("[hiera-consul]: Lookup #{path}/#{key} on #{@config[:host]}:#{@config[:port]}")
 
           # Check that we are not looking somewhere that will make hiera crash subsequent lookups
