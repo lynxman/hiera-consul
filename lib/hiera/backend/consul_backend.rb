@@ -138,11 +138,6 @@ class Hiera
         Hiera.debug("[hiera-consul]: #{msg}")
       end
 
-      # Token is passed only when querying kv store
-      def token(path)
-        "?token=#{@config[:token]}" if @config[:token] && path =~ %r{^/v\d/kv/}
-      end
-
       def wrapquery(path)
         httpreq = Net::HTTP::Get.new("#{path}#{token(path)}")
         result  = request(httpreq)
@@ -159,6 +154,11 @@ class Hiera
 
         debug("Answer was #{result.body}")
         parse_result(result.body)
+      end
+
+      # Token is passed only when querying kv store
+      def token(path)
+        "?token=#{@config[:token]}" if @config[:token] && path =~ %r{^/v\d/kv/}
       end
 
       def request(httpreq)
