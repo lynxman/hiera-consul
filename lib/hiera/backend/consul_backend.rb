@@ -59,12 +59,9 @@ class Hiera
       end
 
       def store
-        if @store
-          @store
-        else
-          ssl_store!
-          @store
-        end
+        return @store if @store
+        ssl_store!
+        @store
       end
 
       def ssl_store!
@@ -196,12 +193,12 @@ class Hiera
 
         service.each do |node_hash|
           node = node_hash['Node']
-          cache_query(key, node_hash, node)
+          cache_query(key, node, node_hash)
         end
       end
 
       # Store the value of a particular node
-      def cache_query(key, node_hash, node)
+      def cache_query(key, node, node_hash)
         node_hash.each do |property, value|
           next if property == 'ServiceID'
 
