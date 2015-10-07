@@ -13,15 +13,16 @@ class Hiera
         @consul.read_timeout = @config[:http_read_timeout] || 10
         @consul.open_timeout = @config[:http_connect_timeout] || 10
         @cache               = {}
-        if @config[:use_ssl]
-          use_ssl!
-        else
-          @consul.use_ssl = false
-        end
+        use_ssl!
         build_cache!
       end
 
       def use_ssl!
+        unless @config[:use_ssl]
+          @consul.use_ssl = false
+          return
+        end
+
         @consul.use_ssl = true
 
         if @config[:ssl_verify] == false
@@ -35,6 +36,8 @@ class Hiera
         store.add_cert(OpenSSL::X509::Certificate.new(File.read(@config[:ssl_ca_cert])))
         @consul.cert_store = store
 
+        Hiera.debug "#{File.expand_path(@config[:ssl_key])}"
+        Hiera.debug "#{File.expand_path(@config[:ssl_cert])}"
         @consul.key = OpenSSL::PKey::RSA.new(File.read(@config[:ssl_key]))
         @consul.cert = OpenSSL::X509::Certificate.new(File.read(@config[:ssl_cert]))
       end
