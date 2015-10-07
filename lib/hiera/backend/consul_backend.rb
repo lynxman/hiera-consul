@@ -4,7 +4,6 @@ require 'json'
 require 'base64'
 
 # Hiera backend for Consul
-
 class Hiera
   module Backend
     class Consul_backend
