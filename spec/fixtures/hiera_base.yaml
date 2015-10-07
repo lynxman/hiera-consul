@@ -1,0 +1,11 @@
+:backends:
+  - consul
+
+:consul:
+  :host: 127.0.0.1
+  :port: 8500
+  :base: /v1/kv/configuration
+
+:hierarchy:
+  - "%{::fqdn}"
+  - common

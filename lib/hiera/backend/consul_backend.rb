@@ -26,7 +26,7 @@ class Hiera
       def lookup(key, scope, order_override, _resolution_type)
         answer = nil
 
-        paths = @config[:paths].map { |p| Backend.parse_string(p, scope, 'key' => key) }
+        paths = resolve_paths(key, scope, order_override)
         paths.unshift(order_override) if order_override
 
         filtered_paths = filter_paths(paths, key)
@@ -44,6 +44,17 @@ class Hiera
       end
 
       private
+
+      def resolve_paths(key, scope, order_override)
+        if @config[:base]
+          Backend.datasources(scope, order_override) do |source|
+            url = "#{@config[:base]}/#{source}"
+            Backend.parse_string(url, scope, 'key' => key)
+          end
+        elsif @config[:paths]
+          @config[:paths].map { |p| Backend.parse_string(p, scope, 'key' => key) }
+        end
+      end
 
       def consul
         if @config[:host] && @config[:port]
