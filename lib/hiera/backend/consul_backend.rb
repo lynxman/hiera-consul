@@ -44,8 +44,16 @@ class Hiera
         ssl_cert!
       end
 
+      def store
+        if @store
+          @store
+        else
+          ssl_store!
+          @store
+        end
+      end
+
       def ssl_store!
-        return @store if @store
         @store = OpenSSL::X509::Store.new
         @store.add_cert(OpenSSL::X509::Certificate.new(File.read(@config[:ssl_ca_cert])))
         @consul.cert_store = @store
