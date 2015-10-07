@@ -1,0 +1,8 @@
+Style/LineLength:
+  Enabled: false
+Style/ClassLength:
+  Enabled: false
+Style/Documentation:
+  Enabled: false
+Style/ClassAndModuleCamelCase:
+  Enabled: false
