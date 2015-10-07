@@ -9,6 +9,10 @@ class Hiera
     class Consul_backend
       @api_version = 'v1'
 
+      class << self
+        attr_reader :api_version
+      end
+
       def initialize
         @config              = Config[:consul]
         @consul              = consul
@@ -46,20 +50,20 @@ class Hiera
         ssl_cert!
       end
 
+      def ssl_verify!
+        if @config[:ssl_verify]
+          @consul.verify_mode = OpenSSL::SSL::VERIFY_PEER
+        else
+          @consul.verify_mode = OpenSSL::SSL::VERIFY_NONE
+        end
+      end
+
       def store
         if @store
           @store
         else
           ssl_store!
           @store
-        end
-      end
-
-      def ssl_verify!
-        if @config[:ssl_verify]
-          @consul.verify_mode = OpenSSL::SSL::VERIFY_PEER
-        else
-          @consul.verify_mode = OpenSSL::SSL::VERIFY_NONE
         end
       end
 
@@ -110,28 +114,20 @@ class Hiera
       end
 
       def parse_result(res)
-        answer = nil
-
-        if res == 'null'
-          Hiera.debug('[hiera-consul]: Jumped as consul null is not valid')
-          return answer
-        end
-
         # Consul always returns an array
         res_array = JSON.parse(res)
 
         # See if we are a k/v return or a catalog return
-        if res_array.length > 0
-          if res_array.first.include? 'Value'
-            answer = Base64.decode64(res_array.first['Value'])
-          else
-            answer = res_array
-          end
-        else
+        unless res_array.length > 0
           Hiera.debug('[hiera-consul]: Jumped as array empty')
+          return nil
         end
 
-        answer
+        if res_array.first.include? 'Value'
+          Base64.decode64(res_array.first['Value'])
+        else
+          res_array
+        end
       end
 
       private
@@ -150,6 +146,11 @@ class Hiera
           return nil
         end
 
+        if result.body == 'null'
+          Hiera.debug('[hiera-consul]: Jumped as consul null is not valid')
+          return nil
+        end
+
         Hiera.debug("[hiera-consul]: Answer was #{result.body}")
         parse_result(result.body)
       end
@@ -162,15 +163,24 @@ class Hiera
         return nil
       end
 
+      def query_services
+        path = "/#{self.class.api_version}/catalog/services"
+        Hiera.debug("[hiera-consul]: Querying #{path}")
+        wrapquery(path)
+      end
+
+      def query_service(key)
+        wrapquery("/#{self.class.api_version}/catalog/service/#{key}").select do |s|
+          s.is_a? Array
+        end
+      end
+
       def build_cache!
-        services = wrapquery("/#{@api_version}/catalog/services")
+        services = query_services
         return nil unless services.is_a? Hash
 
-        services.each do |key, _value|
-          service = wrapquery("/#{@api_version}/catalog/service/#{key}")
-          next unless service.is_a? Array
-
-          service.each do |node_hash|
+        services.each do |key, _|
+          query_service(key).each do |node_hash|
             node = node_hash['Node']
             node_hash.each do |property, value|
               # Value of a particular node
