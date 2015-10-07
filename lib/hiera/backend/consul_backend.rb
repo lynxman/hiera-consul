@@ -184,32 +184,43 @@ class Hiera
         return nil unless services.is_a? Hash
 
         services.each do |key, _|
-          service = query_service(key)
-          next unless service.is_a?(Array)
-
-          service.each do |node_hash|
-            node = node_hash['Node']
-            node_hash.each do |property, value|
-              # Value of a particular node
-              next if property == 'ServiceID'
-
-              unless property == 'Node'
-                @cache["#{key}_#{property}_#{node}"] = value
-              end
-
-              if @cache.key?("#{key}_#{property}")
-                @cache["#{key}_#{property}_array"].push(value)
-              else
-                # Value of the first registered node
-                @cache["#{key}_#{property}"] = value
-
-                # Values of all nodes
-                @cache["#{key}_#{property}_array"] = [value]
-              end
-            end
-          end
+          cache_service(key)
         end
+
         debug("Cache: #{@cache}")
+      end
+
+      def cache_service(key)
+        service = query_service(key)
+        return nil unless service.is_a?(Array)
+
+        service.each do |node_hash|
+          node = node_hash['Node']
+          cache_query(key, node_hash, node)
+        end
+      end
+
+      # Store the value of a particular node
+      def cache_query(key, node_hash, node)
+        node_hash.each do |property, value|
+          next if property == 'ServiceID'
+
+          update_cache(key, value, property, node)
+        end
+      end
+
+      def update_cache(key, value, property, node)
+        @cache["#{key}_#{property}_#{node}"] = value unless property == 'Node'
+
+        if @cache.key?("#{key}_#{property}")
+          @cache["#{key}_#{property}_array"].push(value)
+        else
+          # Value of the first registered node
+          @cache["#{key}_#{property}"] = value
+
+          # Values of all nodes
+          @cache["#{key}_#{property}_array"] = [value]
+        end
       end
     end
   end
