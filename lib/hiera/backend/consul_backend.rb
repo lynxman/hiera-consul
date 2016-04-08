@@ -85,7 +85,12 @@ class Hiera
           # See if we are a k/v return or a catalog return
           if res_array.length > 0
             if res_array.first.include? 'Value'
-              answer = Base64.decode64(res_array.first['Value'])
+              if res_array.first['Value'] == nil
+                # The Value is nil so we return it directly without trying to decode it ( which would fail )
+                return answer
+              else
+                answer = Base64.decode64(res_array.first['Value'])
+              end
             else
               answer = res_array
             end
