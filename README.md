@@ -76,4 +76,4 @@ Heavily based on [etcd-hiera](https://github.com/garethr/hiera-etcd) written by 
 
 Thanks to @mitchellh for writing such wonderful tools and the [API Documentation](http://www.consul.io/docs/agent/http.html)
 
-Thanks for their contributions to [Wei Tie](https://github.com/TieWei), [Derek Tracy](https://github.com/tracyde), [Michael Chapman](https://github.com/michaeltchapman), [Kyle O'Donnell](https://github.com/kyleodonnell) and [AJ](https://github.com/aj-jester)
+Thanks for their contributions to [Wei Tie](https://github.com/TieWei), [Derek Tracy](https://github.com/tracyde), [Michael Chapman](https://github.com/michaeltchapman), [Kyle O'Donnell](https://github.com/kyleodonnell), [AJ](https://github.com/aj-jester) and [lcrisci](https://github.com/lcrisci)
