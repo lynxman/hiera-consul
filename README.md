@@ -4,7 +4,7 @@
 
 ## Configuration
 
-The following hiera.yaml should get you started.
+The following hiera.yaml should get you started:
 
     :backends:
       - consul
@@ -15,6 +15,12 @@ The following hiera.yaml should get you started.
       :paths:
         - /v1/kv/configuration/%{fqdn}
         - /v1/kv/configuration/common
+
+The array `:paths:` allows hiera to access the namespaces in it. As an example, you can query `/v1/kv/configuration/common/yourkey` using 
+
+    hiera('yourkey', [])
+    
+This will return a consul array, which can further processed. See the helper function `consul_info` below for more information.
 
 ## Extra parameters
 
@@ -52,14 +58,14 @@ You can also query the Consul catalog for values by adding catalog resources in 
 
 ### consul_info
 
-This function will allow you to read information out of a consul Array, as an example here we recover node IPs based on a service:
+This function will allow you to read information out of a consul Array returned by hiera, as an example here we recover node IPs based on a service:
 
     $consul_service_array = hiera('rabbitmq',[])
     $mq_cluster_nodes = consul_info($consul_service_array, 'Address')
 
-In this example $mq_cluster_nodes will have a hash with all the IP addresses related to that service
+In this example `$mq_cluster_nodes` will have an array with all the IP addresses related to that service
 
-You can also feed it more than one field and a separator and it will generate a composed string
+You can also call it more with than one field and a separator and it will generate a composed string for each element in the consul query result.
 
     $consul_service_array = hiera('rabbitmq',[])
     $mq_cluster_nodes = consul_info($consul_service_array, [ 'Address', 'Port' ], ':')
