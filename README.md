@@ -2,6 +2,18 @@
 
 [consul](http://www.consul.io) is an orchestration mechanism with fault-tolerance based on the gossip protocol and a key/value store that is strongly consistent. Hiera-consul will allow hiera to write to the k/v store for metadata centralisation and harmonisation.
 
+## Installation
+
+For usage with puppet, install the module in your local environment, e.g.:
+
+    puppet module install lynxman/hiera_consul
+    
+or using a Puppetfile:
+
+    mod 'lynxman/hiera_consul'
+
+Ensure the backend `consul_backend.rb` is available into your hiera environment. Depending on your hiera/puppet environment, you may need to install the backend manually (or with puppet) at the correct path, which may be puppets local ruby path, e.g. `$PUPPET_DIR/lib/ruby/vendor_ruby/hiera/backend/consul_backend.rb`
+
 ## Configuration
 
 The following hiera.yaml should get you started:
