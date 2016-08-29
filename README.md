@@ -14,6 +14,8 @@ or using a Puppetfile:
 
 Ensure the backend `consul_backend.rb` is available into your hiera environment. Depending on your hiera/puppet environment, you may need to install the backend manually (or with puppet) at the correct path, which may be puppets local ruby path, e.g. `$PUPPET_DIR/lib/ruby/vendor_ruby/hiera/backend/consul_backend.rb`
 
+Puppet loads backends differently in some version, see [#SERVER-571](https://tickets.puppetlabs.com/si/jira.issueviews:issue-html/SERVER-571/SERVER-571.html) for more information.
+
 ## Configuration
 
 The following hiera.yaml should get you started:
