@@ -42,11 +42,21 @@ class Hiera
       end
 
       def lookup(key, scope, order_override, resolution_type)
+        Hiera.debug("[hiera-consul]: Key = #{key}, Scope = #{scope.inspect}, Order_override = #{order_override.inspect}, Resoulution_type = #{resolution_type.inspect}")
 
         answer = nil
 
         paths = @config[:paths].map { |p| Backend.parse_string(p, scope, { 'key' => key }) }
+        Hiera.debug("[hiera-consul] Initial paths = #{paths.inspect}")
         paths.insert(0, order_override) if order_override
+        Hiera.debug("[hiera-debug] Overriden paths = #{paths.inspect}")
+
+        if resolution_type == :hash
+          recursive = true
+        else
+          recursive = false
+        end
+        Hiera.debug("[hiera-consul]: Recursive = #{recursive}")
 
         paths.each do |path|
           if path == 'services'
@@ -66,28 +76,38 @@ class Hiera
             Hiera.debug("[hiera-consul]: We only support queries to catalog and kv and you asked #{path}, skipping")
             next
           end
-          answer = wrapquery("#{path}/#{key}")
+          answer = wrapquery("#{path}/#{key}", recursive, resolution_type)
           next unless answer
           break
         end
         answer
       end
 
-      def parse_result(res)
+      def parse_result(res, res_type=nil)
+          Hiera.debug("[hiera-consul]: res_type = #{res_type.inspect}")
           require 'base64'
           answer = nil
           if res == "null"
             Hiera.debug("[hiera-consul]: Jumped as consul null is not valid")
             return answer
           end
+          Hiera.debug("[hiera-consul]: recursive = #{@recursive.inspect}")
           # Consul always returns an array
           res_array = JSON.parse(res)
+          Hiera.debug("[hiera-consul]: res_array length = #{res_array.length}, contents = #{res_array.inspect}")
           # See if we are a k/v return or a catalog return
           if res_array.length > 0
+            Hiera.debug("[hiera-consul]: First = #{res_array.first.inspect}")
             if res_array.first.include? 'Value'
-              if res_array.first['Value'] == nil
-                # The Value is nil so we return it directly without trying to decode it ( which would fail )
-                return answer
+              case res_type
+              when :hash
+                Hiera.debug("[hiera-consul]: Constructing hash response")
+                answer = {}
+                res_array.each do |hash|
+                  Hiera.debug("[hiera-consul]: Processing entry: #{hash.inspect}")
+                  value = !hash['Value'].nil? ? Base64.decode64(hash['Value']) : nil
+                  answer[hash['Key']] = value
+                end
               else
                 answer = Base64.decode64(res_array.first['Value'])
               end
@@ -102,18 +122,13 @@ class Hiera
 
       private
 
-      def token(path)
-        # Token is passed only when querying kv store
-        if @config[:token] and path =~ /^\/v\d\/kv\//
-          return "?token=#{@config[:token]}"
+      def wrapquery(path, recurse=false, res_type=nil)
+        Hiera.debug("[hiera-consul]: wrapquery recursive = #{recurse}, res_type = #{res_type.inspect}")
+        if recurse
+          httpreq = Net::HTTP::Get.new("#{path}?recurse")
         else
-          return nil
+          httpreq = Net::HTTP::Get.new("#{path}")
         end
-      end
-
-      def wrapquery(path)
-
-          httpreq = Net::HTTP::Get.new("#{path}#{token(path)}")
           answer = nil
           begin
             result = @consul.request(httpreq)
@@ -127,7 +142,7 @@ class Hiera
             return answer
           end
           Hiera.debug("[hiera-consul]: Answer was #{result.body}")
-          answer = parse_result(result.body)
+          answer = parse_result(result.body, res_type)
           return answer
       end
 
@@ -139,19 +154,19 @@ class Hiera
             next unless service.is_a? Array
             service.each do |node_hash|
               node = node_hash['Node']
-              node_hash.each do |property, value|
+              node_hash.each do |property, pvalue|
                 # Value of a particular node
                 next if property == 'ServiceID'
                 unless property == 'Node'
-                  @cache["#{key}_#{property}_#{node}"] = value
+                  @cache["#{key}_#{property}_#{node}"] = pvalue
                 end
                 unless @cache.has_key?("#{key}_#{property}")
                   # Value of the first registered node
-                  @cache["#{key}_#{property}"] = value
+                  @cache["#{key}_#{property}"] = pvalue
                   # Values of all nodes
-                  @cache["#{key}_#{property}_array"] = [value]
+                  @cache["#{key}_#{property}_array"] = [pvalue]
                 else
-                  @cache["#{key}_#{property}_array"].push(value)
+                  @cache["#{key}_#{property}_array"].push(pvalue)
                 end
               end
             end
