@@ -113,9 +113,9 @@ class Hiera
 
       def wrapquery(path)
 
-          httpreq = Net::HTTP::Get.new("#{path}#{token(path)}")
           answer = nil
           begin
+            httpreq = Net::HTTP::Get.new("#{path}#{token(path)}")
             result = @consul.request(httpreq)
           rescue Exception => e
             Hiera.debug("[hiera-consul]: Could not connect to Consul")
