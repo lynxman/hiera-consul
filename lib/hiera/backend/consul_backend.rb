@@ -7,6 +7,7 @@ class Hiera
         require 'net/http'
         require 'net/https'
         require 'json'
+
         @config = Config[:consul]
         if (@config[:host] && @config[:port])
           @consul = Net::HTTP.new(@config[:host], @config[:port])
@@ -38,11 +39,11 @@ class Hiera
         else
           @consul.use_ssl = false
         end
+
         build_cache!
       end
 
       def lookup(key, scope, order_override, resolution_type)
-
         answer = nil
 
         paths = @config[:paths].map { |p| Backend.parse_string(p, scope, { 'key' => key }) }
@@ -55,21 +56,26 @@ class Hiera
               return answer
             end
           end
+
           Hiera.debug("[hiera-consul]: Lookup #{path}/#{key} on #{@config[:host]}:#{@config[:port]}")
+
           # Check that we are not looking somewhere that will make hiera crash subsequent lookups
           if "#{path}/#{key}".match("//")
             Hiera.debug("[hiera-consul]: The specified path #{path}/#{key} is malformed, skipping")
             next
           end
-          # We only support querying the catalog or the kv store
-          if path !~ /^\/v\d\/(catalog|kv)\//
-            Hiera.debug("[hiera-consul]: We only support queries to catalog and kv and you asked #{path}, skipping")
+
+          # We only support querying the catalog, KV store or health endpoints.
+          if path !~ /^\/v\d+\/(catalog|health|kv)\//
+            Hiera.warn("[hiera-consul]: We only support queries to catalog and kv and you asked #{path}, skipping")
             next
           end
+
           answer = wrapquery("#{path}/#{key}")
           next unless answer
           break
         end
+
         answer
       end
 
@@ -102,18 +108,22 @@ class Hiera
 
       private
 
-      def token(path)
-        # Token is passed only when querying kv store
-        if @config[:token] and path =~ /^\/v\d\/kv\//
-          return "?token=#{@config[:token]}"
-        else
-          return nil
-        end
-      end
-
       def wrapquery(path)
+          uri = URI("#{path}")
+          params = {}
 
-          httpreq = Net::HTTP::Get.new("#{path}#{token(path)}")
+          # Token is passed only when querying KV store.
+          if @config[:token] and path =~ /^\/v\d+\/kv\//
+            params['token'] = @config[:token]
+          end
+
+          if @config[:passing] and path =~ /^\/v\d+\/health\//
+            params['passing'] = true
+          end
+
+          uri.query = URI.encode_www_form(params)
+
+          httpreq = Net::HTTP::Get.new(uri.to_s)
           answer = nil
           begin
             result = @consul.request(httpreq)
