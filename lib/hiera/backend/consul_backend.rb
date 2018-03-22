@@ -45,13 +45,16 @@ class Hiera
 
         answer = nil
 
-        paths = @config[:paths].map { |p| Backend.parse_string(p, scope, { 'key' => key }) }
+        # ensure support for :: allowing lookup() to define keys in standard format
+        lookup_key = key.gsub("::", "/")
+
+        paths = @config[:paths].map { |p| Backend.parse_string(p, scope, { 'key' => lookup_key }) }
         paths.insert(0, order_override) if order_override
 
         paths.each do |path|
           if path == 'services'
-            if @cache.has_key?(key)
-              answer = @cache[key]
+            if @cache.has_key?(lookup_key)
+              answer = @cache[lookup_key]
               return answer
             end
           end
@@ -66,7 +69,7 @@ class Hiera
             Hiera.debug("[hiera-consul]: We only support queries to catalog and kv and you asked #{path}, skipping")
             next
           end
-          answer = wrapquery("#{path}/#{key}")
+          answer = wrapquery("#{path}/#{lookup_key}")
           next unless answer
           break
         end
